@@ -1,0 +1,17 @@
+{
+    "protein": ["kjøttdeig", "laks", "kylling", "scampi"],
+    "carbohydrate": ["pasta", "ris", "søtpotet", "potet", "couscous", "gnocci"],
+    "mainSauce": [
+        "teriyaki",
+        "hvitløksdressing",
+        "tzatziki",
+        "chili mayo",
+        "kebabsaus",
+        "big mac saus",
+        "avokadodressing"
+    ],
+    "secondarySauce": ["siracha", "sweet chili", "sweet & sour", "sesam mayo", "lime-koriander mayo"],
+    "mainSalad": ["isbergsalat", "ruccola", "spisskål", "rødkål"],
+    "secondarySalad": ["agurk", "edamame", "tomat", "avokado", "mais", "mango"],
+    "topping": ["krutonger", "vårløk", "syltet rødløk"]
+}

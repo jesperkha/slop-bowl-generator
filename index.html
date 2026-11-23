@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="no">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Slop Bowl Generator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="min-h-screen bg-white text-slate-950 antialiased">
+        <main class="mx-auto min-h-screen w-full max-w-2xl px-5 pb-8 pt-10 sm:px-8">
+            <header class="mb-8">
+                <h1 class="mt-2 text-3xl font-semibold tracking-tight">Slop Bowl</h1>
+                <p class="mt-2 text-black/80">Generer dagens slop bowl</p>
+            </header>
+
+            <button
+                id="generate"
+                type="button"
+                class="mb-8 w-full rounded-md bg-slate-950 px-5 py-3.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+                Generer
+            </button>
+
+            <section id="categories" aria-label="Ingredienser" class="space-y-8"></section>
+        </main>
+
+        <div
+            id="result"
+            class="fixed inset-0 z-50 hidden items-end bg-slate-950/20 p-0 sm:items-center sm:justify-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-title"
+        >
+            <div class="w-full rounded-t-md bg-white px-5 pb-6 pt-4 shadow-xl sm:max-w-md sm:rounded-md sm:px-6">
+                <div class="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h2 id="result-title" class="text-lg font-semibold tracking-tight">Din skål</h2>
+                    <button
+                        id="close-result"
+                        type="button"
+                        aria-label="Lukk"
+                        class="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            class="h-5 w-5"
+                            aria-hidden="true"
+                        >
+                            <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="result-list" class="divide-y divide-slate-100"></div>
+            </div>
+        </div>
+
+        <script>
+            const categoryNames = {
+                protein: "Protein",
+                carbohydrate: "Karbohydrat",
+                mainSauce: "Hovedsaus",
+                secondarySauce: "Sekundærsaus",
+                mainSalad: "Hovedsalat",
+                secondarySalad: "Sekundærsalat",
+                topping: "Topping",
+            };
+
+            const categoriesElement = document.getElementById("categories");
+            const generateButton = document.getElementById("generate");
+            const resultElement = document.getElementById("result");
+            const resultList = document.getElementById("result-list");
+            let ingredients = {};
+            let bowl = {};
+            let savedSelections = {};
+
+            try {
+                savedSelections =
+                    JSON.parse(localStorage.getItem("slop-bowl-selections")) || {};
+            } catch {
+                savedSelections = {};
+            }
+
+            const selectedIngredients = (category) =>
+                [...document.querySelectorAll(`input[data-category="${category}"]:checked`)].map(
+                    (input) => input.value,
+                );
+
+            const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
+
+            const saveSelections = () => {
+                const selections = {};
+
+                document.querySelectorAll("input[data-category]").forEach((input) => {
+                    const category = input.dataset.category;
+                    selections[category] ||= {};
+                    selections[category][input.value] = input.checked;
+                });
+
+                localStorage.setItem("slop-bowl-selections", JSON.stringify(selections));
+            };
+
+            function renderSelection() {
+                categoriesElement.innerHTML = Object.entries(ingredients)
+                    .map(
+                        ([category, items]) => `
+          <div class="rounded-md border border-slate-200 p-4">
+            <h2 class="mb-3 text-sm font-semibold">${categoryNames[category] || category}</h2>
+            <div class="grid grid-cols-1 gap-1">
+              ${items
+                  .map(
+                      (item, index) => `
+                <label class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2.5 text-sm hover:bg-slate-50">
+                  <span class="capitalize">${item}</span>
+                  <input
+                    type="checkbox"
+                    ${savedSelections[category]?.[item] !== false ? "checked" : ""}
+                    value="${item}"
+                    data-category="${category}"
+                    class="h-5 w-5 shrink-0 rounded border-slate-300 accent-slate-950"
+                  />
+                </label>
+              `,
+                  )
+                  .join("")}
+            </div>
+          </div>
+        `,
+                    )
+                    .join("");
+
+                document.querySelectorAll("input[data-category]").forEach((input) => {
+                    input.addEventListener("change", saveSelections);
+                });
+            }
+
+            function renderResult() {
+                resultElement.classList.toggle("hidden", Object.keys(bowl).length === 0);
+                resultElement.classList.toggle("flex", Object.keys(bowl).length > 0);
+                resultList.innerHTML = Object.entries(bowl)
+                    .map(
+                        ([category, item]) => `
+          <div class="flex items-center justify-between gap-4 py-3.5" data-result="${category}">
+            <div class="min-w-0">
+              <p class="text-xs text-slate-400">${categoryNames[category] || category}</p>
+              <p class="mt-0.5 text-sm font-medium capitalize">${item}</p>
+            </div>
+            <button
+              type="button"
+              data-reroll="${category}"
+              aria-label="Generer på nytt: ${categoryNames[category] || category}"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-6 w-6" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.09 9A7 7 0 0 1 17.66 6.34L20 12M3.99 12l2.35 5.66A7 7 0 0 0 17.91 15" />
+              </svg>
+            </button>
+          </div>
+        `,
+                    )
+                    .join("");
+            }
+
+            generateButton.addEventListener("click", () => {
+                bowl = {};
+
+                Object.keys(ingredients).forEach((category) => {
+                    const choices = selectedIngredients(category);
+                    if (choices.length) {
+                        bowl[category] = randomItem(choices);
+                    }
+                });
+
+                renderResult();
+            });
+
+            document.getElementById("close-result").addEventListener("click", () => {
+                resultElement.classList.add("hidden");
+                resultElement.classList.remove("flex");
+            });
+
+            resultElement.addEventListener("click", (event) => {
+                if (event.target === resultElement) {
+                    resultElement.classList.add("hidden");
+                    resultElement.classList.remove("flex");
+                }
+            });
+
+            resultList.addEventListener("click", (event) => {
+                const button = event.target.closest("[data-reroll]");
+                if (!button) return;
+
+                const category = button.dataset.reroll;
+                const choices = selectedIngredients(category).filter((item) => item !== bowl[category]);
+                if (choices.length) {
+                    bowl[category] = randomItem(choices);
+                    renderResult();
+                }
+            });
+
+            fetch("/ingredients.json")
+                .then((response) => {
+                    if (!response.ok) throw new Error("Kunne ikke hente ingrediensene");
+                    return response.json();
+                })
+                .then((data) => {
+                    ingredients = data;
+                    renderSelection();
+                })
+                .catch(() => {
+                    categoriesElement.innerHTML = '<p class="text-sm text-red-600">Kunne ikke laste ingredienser.</p>';
+                    generateButton.disabled = true;
+                });
+        </script>
+    </body>
+</html>
