@@ -8,16 +8,19 @@ const root = __dirname;
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+  ".png": "image/png",
 };
 
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, "http://localhost").pathname;
-  const file =
-    pathname === "/"
-      ? path.join(root, "index.html")
-      : pathname === "/ingredients.json"
-        ? path.join(root, "ingredients.json")
-        : null;
+  const publicFiles = {
+    "/": "index.html",
+    "/ingredients.json": "ingredients.json",
+    "/manifest.webmanifest": "manifest.webmanifest",
+    "/icon-512.png": "icon-512.png",
+  };
+  const file = publicFiles[pathname] ? path.join(root, publicFiles[pathname]) : null;
 
   if (!file) {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
